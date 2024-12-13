@@ -1041,6 +1041,47 @@ theorem IsPathConnected.union {U V : Set X} (hU : IsPathConnected U) (hV : IsPat
   · exact (hV.joinedIn x xV y yV).mono subset_union_right
 #align is_path_connected.union IsPathConnected.union
 
+--Joseph Cooper's edits
+universe u v
+variable {α : Type u} {β : Type v} [TopologicalSpace α]
+
+theorem is_path_connected_pairwise_union (c : Set (Set α)) (H1: Nonempty c) (H2 : ∀ s ∈ c, ∀ t ∈ c, (s ∩ t).Nonempty) -- pairwise
+    (H3 : ∀ s ∈ c, IsPathConnected s): IsPathConnected (⋃₀ c):= by
+    refine Iff.mpr isPathConnected_iff ?_
+    constructor
+    simp_all
+    rcases H1 with ⟨a,ainc⟩
+    use a
+    constructor
+    exact ainc
+    exact Nonempty.left (H2 a ainc a ainc)
+
+    intro a h b h'
+    simp_all
+    rcases h with ⟨t, tInc, aInt⟩
+    rcases h' with ⟨s, sInc, bIns⟩
+    -- need to make path from a to b, using x as the midpoint
+    have h: ∃x, x ∈ s ∧ x ∈ t:= by
+      exact H2 s sInc t tInc
+    rcases h with ⟨x, xIns,xInt⟩ -- for some reason moving this upwards made the types match
+    apply JoinedIn.trans
+    apply JoinedIn.mono
+    exact IsPathConnected.joinedIn (H3 t tInc) a aInt x xInt
+    exact subset_sUnion_of_mem tInc
+    apply JoinedIn.mono
+    exact IsPathConnected.joinedIn (H3 s sInc) x xIns b bIns
+    exact subset_sUnion_of_mem sInc
+
+theorem isPathConnected_sUnion (x : α) (c : Set (Set α)) (H1: Nonempty c) (H2 : ∀ s ∈ c, x ∈ s) -- added Nonempty, as a path connected space is assumed to be nonempty
+(H3 : ∀ s ∈ c, IsPathConnected s) : IsPathConnected (⋃₀ c) := by
+  refine is_path_connected_pairwise_union c H1 ?H2 H3
+  intro s h₁ t h₂
+  apply nonempty_def.mpr
+  use x
+  constructor
+  apply H2 s h₁
+  apply H2 t h₂
+
 /-- If a set `W` is path-connected, then it is also path-connected when seen as a set in a smaller
 ambient type `U` (when `U` contains `W`). -/
 theorem IsPathConnected.preimage_coe {U W : Set X} (hW : IsPathConnected W) (hWU : W ⊆ U) :
